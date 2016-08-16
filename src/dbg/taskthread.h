@@ -32,7 +32,10 @@ protected:
     virtual void ResetArgs() { }
 public:
     void WakeUp(Args...);
+    TaskThread_() {};
     TaskThread_(F, size_t minSleepTimeMs = TASK_THREAD_DEFAULT_SLEEP_TIME);
+    TaskThread_(const TaskThread_<F> &);
+    TaskThread_ & operator=(const TaskThread_<F> &);
     ~TaskThread_();
 };
 

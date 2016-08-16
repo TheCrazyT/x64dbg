@@ -8,6 +8,7 @@
 #include "bridgemain.h"
 #include <stdio.h>
 #include "Utf8Ini.h"
+#include "yara\yara\pe.h"
 
 static HINSTANCE hInst;
 static Utf8Ini settings;
@@ -230,7 +231,7 @@ BRIDGE_IMPEXP bool BridgeSettingRead(int* errorLine)
         }
         CloseHandle(hFile);
     }
-    if(success)  //if we failed to read the file, the current settings are better than none at all
+    if(success)   //if we failed to read the file, the current settings are better than none at all
     {
         EnterCriticalSection(&csIni);
         int errline = 0;
@@ -247,6 +248,95 @@ BRIDGE_IMPEXP int BridgeGetDbgVersion()
     return DBG_VERSION;
 }
 
+void parseRelocations(unsigned char* mem, duint size, RELOCTBL* reloctbl, IMAGE_DOS_HEADER* dosh)
+{
+    IMAGE_NT_HEADERS* inth = (IMAGE_NT_HEADERS*)(mem + dosh->e_lfanew);
+    IMAGE_DATA_DIRECTORY rloc = inth->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+    if(rloc.VirtualAddress != 0)
+    {
+        if(rloc.VirtualAddress < size)
+        {
+
+            int j = 0;
+            DWORD chunkSize;
+            for(int i = 0; i < rloc.Size; i += chunkSize)
+            {
+                chunkSize = *(DWORD*)(mem + rloc.VirtualAddress + i + 4);
+                WORD raddr = *(DWORD*)(mem + rloc.VirtualAddress + i);
+                for(int k = i + 8; k < chunkSize; k += 2)
+                {
+                    WORD T_OFF = *(WORD*)(mem + rloc.VirtualAddress + k);
+                    unsigned char t = (T_OFF & 0xF000) >> 12;
+                    WORD off = T_OFF & 0xFFF;
+                    switch(t)
+                    {
+                    case IMAGE_REL_I386_DIR16:
+                    case IMAGE_REL_I386_REL16:
+                        reloctbl->fromTo[j].from = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off);
+                        reloctbl->fromTo[j].to = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off + 2);
+                        j++;
+                        if(j >= MAX_RELOC_ENTRIES)
+                        {
+                            return;
+                        }
+                        break;
+                    //case IMAGE_REL_AMD64_ADDR64:
+                    //case IMAGE_REL_AMD64_ADDR32:
+                    case IMAGE_REL_AMD64_ADDR32NB:
+                    case IMAGE_REL_AMD64_REL32:
+                    case IMAGE_REL_AMD64_REL32_1:
+                    case IMAGE_REL_AMD64_REL32_2:
+                    case IMAGE_REL_AMD64_REL32_3:
+                    case IMAGE_REL_AMD64_REL32_4:
+                    case IMAGE_REL_AMD64_REL32_5:
+                    //case IMAGE_REL_I386_DIR32:
+                    case IMAGE_REL_I386_REL32:
+                        reloctbl->fromTo[j].from = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off);
+                        reloctbl->fromTo[j].to = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off + 4);
+                        j++;
+                        if(j >= MAX_RELOC_ENTRIES)
+                        {
+                            return;
+                        }
+                        break;
+                    case IMAGE_REL_AMD64_SECTION:
+                        reloctbl->fromTo[j].from = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off);
+                        reloctbl->fromTo[j].to = (PVOID)(inth->OptionalHeader.ImageBase + raddr + off + 4);
+                        j++;
+                        if(j >= MAX_RELOC_ENTRIES)
+                        {
+                            return;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+BRIDGE_IMPEXP bool DbgRelocTbl(duint base, RELOCTBL* reloctbl)
+{
+    duint size = DbgMemGetPageSize(base);
+    memset(reloctbl, 0, sizeof(RELOCTBL));
+    if(size > sizeof(IMAGE_DOS_HEADER) + sizeof(IMAGE_NT_HEADERS))
+    {
+        unsigned char* mem = new unsigned char[size];
+        DbgMemRead(base, mem, size);
+        IMAGE_DOS_HEADER* dosh = (IMAGE_DOS_HEADER*)mem;
+        if(dosh->e_magic = IMAGE_DOS_SIGNATURE)
+        {
+            if(dosh->e_lfanew != 0)
+            {
+                if(dosh->e_lfanew < size)
+                {
+                    parseRelocations(mem, size, reloctbl, dosh);
+                }
+            }
+        }
+        free(mem);
+    }
+    return true;
+}
 BRIDGE_IMPEXP bool DbgMemRead(duint va, unsigned char* dest, duint size)
 {
 #ifdef _DEBUG

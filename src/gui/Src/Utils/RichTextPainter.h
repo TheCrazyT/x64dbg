@@ -17,6 +17,7 @@ public:
         FlagNone,
         FlagColor,
         FlagBackground,
+        FlagTextDecoration,
         FlagAll
     };
 
@@ -27,6 +28,7 @@ public:
         QColor textBackground;
         CustomRichTextFlags flags;
         bool highlight;
+        bool underlined;
         QColor highlightColor;
     } CustomRichText_t;
 

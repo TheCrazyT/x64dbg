@@ -8,6 +8,7 @@
 #include "Imports.h"
 #include "ReferenceManager.h"
 #include "BridgeResult.h"
+#include "Memory/RelocationRange.h"
 
 class Bridge : public QObject
 {

@@ -3,6 +3,7 @@
 
 #include "AbstractTableView.h"
 #include "DisassemblyPopup.h"
+#include "Memory/RelocationRange.h"
 
 class CodeFoldingHelper;
 class QBeaEngine;
@@ -129,6 +130,7 @@ private:
     } SelectionData_t;
 
     SelectionData_t mSelection;
+    RelocationRanges mRelocationRanges;
 
     bool mIsLastInstDisplayed;
     bool mIsRunning;

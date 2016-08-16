@@ -38,7 +38,7 @@ struct Instruction_t
 class QBeaEngine
 {
 public:
-    explicit QBeaEngine(int maxModuleSize);
+    explicit QBeaEngine(int maxModuleSize, RelocationRanges & relocationRanges = EmptyRelocationRanges);
     ~QBeaEngine();
     ulong DisassembleBack(byte_t* data, duint base, duint size, duint ip, int n);
     ulong DisassembleNext(byte_t* data, duint base, duint size, duint ip, int n);

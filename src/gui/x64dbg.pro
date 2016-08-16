@@ -167,7 +167,8 @@ SOURCES += \
     Src/Gui/FavouriteTools.cpp \
     Src/Gui/BrowseDialog.cpp \
     Src/Gui/DisassemblerGraphView.cpp \
-    Src/Gui/DisassemblyPopup.cpp
+    Src/Gui/DisassemblyPopup.cpp \
+    Src/Memory/RelocationRange.cpp
 
 
 HEADERS += \
@@ -271,7 +272,8 @@ HEADERS += \
     Src/Gui/BrowseDialog.h \
     Src/Gui/DisassemblerGraphView.h \
     Src/Utils/ActionHelpers.h \
-    Src/Gui/DisassemblyPopup.h
+    Src/Gui/DisassemblyPopup.h \
+    Src/Memory/RelocationRange.h
     
 
 FORMS += \

@@ -11,6 +11,8 @@ void RichTextPainter::paintRichText(QPainter* painter, int x, int y, int w, int 
     QBrush brush(Qt::cyan);
     for(const auto & curRichText : richText)
     {
+        QFont f;
+        painter->setFont(f);
         int textWidth = fontMetrics->width(curRichText.text);
         int backgroundWidth = textWidth;
         if(backgroundWidth + xinc > w)
@@ -24,6 +26,12 @@ void RichTextPainter::paintRichText(QPainter* painter, int x, int y, int w, int 
         case FlagColor: //color only
             pen.setColor(curRichText.textColor);
             painter->setPen(pen);
+            break;
+        case FlagTextDecoration:
+            if(curRichText.underlined)
+            {
+                f.setUnderline(true);
+            }
             break;
         case FlagBackground: //background only
             if(backgroundWidth > 0)

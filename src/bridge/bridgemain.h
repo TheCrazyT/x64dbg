@@ -67,6 +67,8 @@ extern "C"
 #endif
 
 //Debugger defines
+
+#define MAX_RELOC_ENTRIES 1024
 #define MAX_LABEL_SIZE 256
 #define MAX_COMMENT_SIZE 512
 #define MAX_MODULE_SIZE 256
@@ -383,6 +385,17 @@ typedef struct DBGFUNCTIONS_ DBGFUNCTIONS;
 typedef void (*CBSYMBOLENUM)(SYMBOLINFO* symbol, void* user);
 
 //Debugger structs
+typedef struct
+{
+    PVOID from;
+    PVOID to;
+} FROMTO;
+
+typedef struct
+{
+    FROMTO fromTo[MAX_RELOC_ENTRIES];
+} RELOCTBL;
+
 typedef struct
 {
     MEMORY_BASIC_INFORMATION mbi;
@@ -771,6 +784,7 @@ BRIDGE_IMPEXP duint DbgMemFindBaseAddr(duint addr, duint* size);
 BRIDGE_IMPEXP bool DbgCmdExec(const char* cmd);
 BRIDGE_IMPEXP bool DbgCmdExecDirect(const char* cmd);
 BRIDGE_IMPEXP bool DbgMemMap(MEMMAP* memmap);
+BRIDGE_IMPEXP bool DbgRelocTbl(duint base, RELOCTBL* relocTbl);
 BRIDGE_IMPEXP bool DbgIsValidExpression(const char* expression);
 BRIDGE_IMPEXP bool DbgIsDebugging();
 BRIDGE_IMPEXP bool DbgIsJumpGoingToExecute(duint addr);
