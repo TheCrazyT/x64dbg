@@ -4,7 +4,7 @@
 #include "CachedFontMetrics.h"
 #include "Memory/RelocationRange.h"
 
-CapstoneTokenizer::CapstoneTokenizer(int maxModuleLength, RelocationRanges & relocationRanges)
+CapstoneTokenizer::CapstoneTokenizer(int maxModuleLength)
     : _maxModuleLength(maxModuleLength),
       _success(false)
 {

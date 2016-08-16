@@ -30,7 +30,7 @@ Disassembly::Disassembly(QWidget* parent) : AbstractTableView(parent), mDisassem
     int maxModuleSize = (int)ConfigUint("Disassembler", "MaxModuleSize");
     Config()->writeUints();
 
-    mDisasm = new QBeaEngine(maxModuleSize, mRelocationRanges);
+    mDisasm = new QBeaEngine(maxModuleSize);
     mDisasm->UpdateConfig();
 
     mCodeFoldingManager = nullptr;

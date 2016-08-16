@@ -3,8 +3,8 @@
 #include "EncodeMap.h"
 #include "CodeFolding.h"
 
-QBeaEngine::QBeaEngine(int maxModuleSize, RelocationRanges & relocationRanges)
-    : _tokenizer(maxModuleSize, relocationRanges), mCodeFoldingManager(nullptr)
+QBeaEngine::QBeaEngine(int maxModuleSize)
+    : _tokenizer(maxModuleSize), mCodeFoldingManager(nullptr)
 {
     CapstoneTokenizer::UpdateColors();
     UpdateDataInstructionMap();

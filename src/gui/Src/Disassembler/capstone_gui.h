@@ -137,7 +137,7 @@ public:
         }
     };
 
-    CapstoneTokenizer(int maxModuleLength, RelocationRanges & relocationRanges);
+    CapstoneTokenizer(int maxModuleLength);
     bool Tokenize(duint addr, const unsigned char* data, int datasize, InstructionToken & instruction);
     bool TokenizeData(const QString & datatype, const QString & data, InstructionToken & instruction);
     void UpdateConfig();
@@ -166,7 +166,6 @@ private:
     bool _bTabbedMnemonic;
     bool _bArgumentSpaces;
     bool _bMemorySpaces;
-    RelocationRanges _relocationRanges;
 
     void addToken(TokenType type, QString text, const TokenValue & value);
     void addToken(TokenType type, const QString & text);
