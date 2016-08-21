@@ -1,13 +1,13 @@
 //ToDo: RelocationRanges need to be initialized somewhere like at MemoryMapView::refreshMap
 
+#include <QObject>
 #include "Memory/RelocationRange.h"
 #include "Bridge.h"
 #include "MemoryPage.h"
 
 #define min(X,Y) X<Y ? X:Y
 #define max(X,Y) X>Y ? X:Y
-RelocationRanges EmptyRelocationRanges;
-RelocationRanges RelocationRanges::_instance;
+RelocationRanges* RelocationRanges::_instance;
 Range::Range(void* from, void* to)
 {
     this->_from = from;
@@ -16,64 +16,94 @@ Range::Range(void* from, void* to)
 
 bool Range::isWithin(void* addr)
 {
-    return (addr > _from) && (addr > _to);
+    return (addr > _from) && (addr < _to);
 }
 
-template<class T>
-Ranges<T>::Ranges()
+bool RelocationRanges::isWithin(void* addr)
 {
-    this->_from = 0;
-    this->_to = 0;
+    if((this->_from == (void*) - 1) && (this->_to == 0))
+    {
+        return false;
+    }
+    if((addr > this->_from) && (addr < this->_to))
+    {
+        QList<RelocationRange*>::iterator b = this->begin();
+        QList<RelocationRange*>::iterator e = this->end();
+        QList<RelocationRange*>::iterator r = b;
+        while(r != e)
+        {
+            if((*r)->isWithin(addr))
+            {
+                return true;
+            }
+            r++;
+        }
+    }
+    return false;
 }
 
 
 
-template<class T>
-void Ranges<T>::append(const T & t)
+void RelocationRanges::append(RelocationRange* t)
 {
-    _from = min(this->_from, t._from);
-    _to = max(this->_from, t._from);
-    QList<T>::append(t);
+    this->_from = min(this->_from, t->_from);
+    this->_to = max(this->_to, t->_to);
+    QList<RelocationRange*>::append(t);
 }
 
-template<class T>
-void Ranges<T>::prepend(const T & t)
+
+void RelocationRanges::prepend(RelocationRange* t)
 {
-    _from = min(this->_from, t._from);
-    _to = max(this->_from, t._from);
-    QList<T>::prepend(t);
+    this->_from = min(this->_from, t->_from);
+    this->_to = max(this->_to, t->_to);
+    QList<RelocationRange*>::prepend(t);
 }
 
-template<class T>
-void Ranges<T>::insert(int i, const T & t)
+
+void RelocationRanges::insert(int i, RelocationRange* t)
 {
-    _from = min(this->_from, t._from);
-    _to = max(this->_from, t._from);
-    QList<T>::insert(i, t);
+    this->_from = min(this->_from, t->_from);
+    this->_to = max(this->_to, t->_to);
+    QList<RelocationRange*>::insert(i, t);
 }
 
-template<class T>
-void Ranges<T>::replace(int i, const T & t)
+
+void RelocationRanges::replace(int i, RelocationRange* t)
 {
-    _from = min(this->_from, t._from);
-    _to = max(this->_from, t._from);
-    QList<T>::replace(i, t);
+    this->_from = min(this->_from, t->_from);
+    this->_to = max(this->_to, t->_to);
+    QList<RelocationRange*>::replace(i, t);
 }
 
 RelocationRanges::RelocationRanges()
 {
-    this->_from = 0;
+    this->_from = (void*) - 1;
     this->_to = 0;
+    this->_lastupdate = 0;
     this->clear();
+}
+void RelocationRanges::init()
+{
+    Bridge* bridge = Bridge::getBridge();
+    RelocationRanges* instance = RelocationRanges::instance();
 
-    connect(Bridge::getBridge(), SIGNAL(updateMemory()), this, SLOT(refresh()));
+    connect(bridge, SIGNAL(updateMemory()), instance, SLOT(refresh()));
 }
 
 void RelocationRanges::refresh()
 {
-    this->_from = 0;
-    this->_to = 0;
-    this->clear();
+    long t = GetCurrentTime();
+
+    //TODO: find the right event instead of this sh*t.
+    if(t - this->_lastupdate > 30 * 60 * 100)
+    {
+        this->_lastupdate = t;
+    }
+    else
+    {
+        return;
+    }
+
 
     MEMMAP wMemMapStruct;
     int wI;
@@ -81,19 +111,40 @@ void RelocationRanges::refresh()
     memset(&wMemMapStruct, 0, sizeof(MEMMAP));
 
     DbgMemMap(&wMemMapStruct);
-    for(wI = 0; wI < wMemMapStruct.count; wI++)
+    if(wMemMapStruct.count > 0)
     {
-        MEMPAGE page = wMemMapStruct.page[wI];
-        MEMORY_BASIC_INFORMATION mbi = page.mbi;
-        if(mbi.Type == MEM_IMAGE)
+        RelocationRanges tmp;
+        for(wI = 0; wI < wMemMapStruct.count; wI++)
         {
-            PVOID ba = mbi.BaseAddress;
-            RELOCTBL relocTbl;
-            DbgRelocTbl((duint)ba, &relocTbl);
-            for(int i = 0; i < MAX_RELOC_ENTRIES; i++)
+            MEMPAGE page = wMemMapStruct.page[wI];
+            MEMORY_BASIC_INFORMATION mbi = page.mbi;
+            if(mbi.Type == MEM_IMAGE)
             {
-                FROMTO ft = relocTbl.fromTo[i];
-                append(RelocationRange(ft.from, ft.to));
+                PVOID ba = mbi.BaseAddress;
+                RELOCTBL relocTbl;
+                DbgRelocTbl((duint)ba, &relocTbl);
+                for(int i = 0; i < MAX_RELOC_ENTRIES; i++)
+                {
+                    FROMTO ft = relocTbl.fromTo[i];
+                    if((ft.from != 0) && (ft.to != 0))
+                    {
+                        tmp.append(new RelocationRange(ft.from, ft.to));
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        if(tmp.size() > 0)
+        {
+            this->_from = (void*) - 1;
+            this->_to = 0;
+            this->clear();
+            for(RelocationRange* r : tmp)
+            {
+                RelocationRanges::append(r);
             }
         }
     }

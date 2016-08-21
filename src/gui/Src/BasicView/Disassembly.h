@@ -130,7 +130,6 @@ private:
     } SelectionData_t;
 
     SelectionData_t mSelection;
-    RelocationRanges mRelocationRanges;
 
     bool mIsLastInstDisplayed;
     bool mIsRunning;

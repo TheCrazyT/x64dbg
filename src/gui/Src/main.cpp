@@ -2,6 +2,7 @@
 #include "capstone_wrapper.h"
 #include "MainWindow.h"
 #include "Configuration.h"
+#include "Memory/RelocationRange.h"
 #include <QTextCodec>
 #include <QFile>
 #include <QTranslator>
@@ -130,6 +131,8 @@ int main(int argc, char* argv[])
 
     // Set some data
     Bridge::getBridge()->winId = (void*)mainWindow->winId();
+
+    RelocationRanges::init();
 
     // Init debugger
     const char* errormsg = DbgInit();

@@ -17,7 +17,6 @@ public:
         FlagNone,
         FlagColor,
         FlagBackground,
-        FlagTextDecoration,
         FlagAll
     };
 

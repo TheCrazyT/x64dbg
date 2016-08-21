@@ -437,6 +437,15 @@ QString Disassembly::paintContent(QPainter* painter, dsint rowBase, int rowOffse
                 curByte.textColor = byte == patchInfo.newbyte ? mModifiedBytesColor : mRestoredBytesColor;
             else
                 curByte.textColor = mBytesColor;
+
+            //ToDo: make an option to disable Decoration of relocation areas (incase it needs too much processor time)
+            if(RelocationRanges::instance()->isWithin((PVOID)(cur_addr + i)))
+            {
+                curByte.underlined = true;
+                //ToDo: currently wrong ...
+                curByte.textBackground = mAddressBackgroundColor;
+                curByte.flags = RichTextPainter::FlagAll;
+            }
             richBytes.push_back(curByte);
         }
         if(mCodeFoldingManager && mCodeFoldingManager->isFolded(cur_addr))

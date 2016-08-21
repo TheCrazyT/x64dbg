@@ -2,7 +2,6 @@
 #include "Configuration.h"
 #include "StringUtil.h"
 #include "CachedFontMetrics.h"
-#include "Memory/RelocationRange.h"
 
 CapstoneTokenizer::CapstoneTokenizer(int maxModuleLength)
     : _maxModuleLength(maxModuleLength),
@@ -43,7 +42,6 @@ void CapstoneTokenizer::UpdateColors()
     addColorName(TokenType::Uncategorized, "InstructionUncategorizedColor", "InstructionUncategorizedBackgroundColor");
     addColorName(TokenType::Address, "InstructionAddressColor", "InstructionAddressBackgroundColor"); //jump/call destinations
     addColorName(TokenType::Value, "InstructionValueColor", "InstructionValueBackgroundColor");
-    addColorName(TokenType::RelocValue, "InstructionValueColor", "InstructionValueBackgroundColor");
     //mnemonics
     addColorName(TokenType::MnemonicNormal, "InstructionMnemonicColor", "InstructionMnemonicBackgroundColor");
     addColorName(TokenType::MnemonicPushPop, "InstructionPushPopColor", "InstructionPushPopBackgroundColor");
@@ -125,33 +123,12 @@ bool CapstoneTokenizer::Tokenize(duint addr, const unsigned char* data, int data
     return true;
 }
 
-bool CapstoneTokenizer::isReloc(InstructionToken & instruction)
-{
-    for(SingleToken token : instruction.tokens)
-    {
-        if(token.type == TokenType::Address)
-        {
-            return RelocationRanges::instance().isWithin((void*)token.value.value);
-        }
-    }
-    return false;
-}
-
 bool CapstoneTokenizer::TokenizeData(const QString & datatype, const QString & data, InstructionToken & instruction)
 {
     _inst = InstructionToken();
 
     if(!tokenizeMnemonic(TokenType::MnemonicNormal, datatype))
         return false;
-
-    if(isReloc(instruction))
-    {
-        addToken(TokenType::RelocValue, data);
-    }
-    else
-    {
-        addToken(TokenType::Value, data);
-    }
 
     instruction = _inst;
 
@@ -194,10 +171,6 @@ void CapstoneTokenizer::TokenToRichText(const InstructionToken & instr, RichText
         richText.highlight = TokenEquals(&token, highlightToken);
         richText.highlightColor = highlightColor;
         richText.flags = RichTextPainter::FlagNone;
-        if(token.type == TokenType::RelocValue)
-        {
-            richText.flags = RichTextPainter::FlagTextDecoration;
-        }
         richText.text = token.text;
         auto found = colorNamesMap.find(token.type);
         if(found != colorNamesMap.end())
@@ -477,8 +450,11 @@ bool CapstoneTokenizer::tokenizeImmOperand(const cs_x86_op & op)
     duint value = duint(op.imm);
     auto valueType = TokenType::Value;
     if(_cp.InGroup(CS_GRP_JUMP) || _cp.InGroup(CS_GRP_CALL) || _cp.IsLoop())
+    {
         valueType = TokenType::Address;
+    }
     auto tokenValue = TokenValue(op.size, value);
+
     addToken(valueType, printValue(tokenValue, true, _maxModuleLength), tokenValue);
     return true;
 }

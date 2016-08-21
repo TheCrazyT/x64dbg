@@ -4,7 +4,6 @@
 #include <capstone_wrapper.h>
 #include "RichTextPainter.h"
 #include "Configuration.h"
-#include "Memory/RelocationRange.h"
 #include <map>
 #include <QHash>
 #include <QtCore>
@@ -24,7 +23,6 @@ public:
         Uncategorized,
         Address, //jump/call destinations or displacements inside memory
         Value,
-        RelocValue,
         //mnemonics
         MnemonicNormal,
         MnemonicPushPop,
@@ -156,7 +154,6 @@ private:
     static void addColorName(TokenType type, QString color, QString backgroundColor);
     static void addStringsToPool(const QString & regs);
     static bool tokenTextPoolEquals(const QString & a, const QString & b);
-    static bool isReloc(InstructionToken & instruction);
 
     Capstone _cp;
     InstructionToken _inst;
